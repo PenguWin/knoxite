@@ -37,6 +37,7 @@ type StoreOptions struct {
 	FailureTolerance uint
 	Excludes         []string
 	Pedantic         bool
+	Verify           bool
 }
 
 var (
@@ -91,6 +92,7 @@ func initStoreFlags(f func() *pflag.FlagSet, opts *StoreOptions) {
 	f().UintVarP(&opts.FailureTolerance, "tolerance", "t", 0, "failure tolerance against n backend failures")
 	f().StringArrayVarP(&opts.Excludes, "excludes", "x", []string{}, "list of excludes")
 	f().BoolVar(&opts.Pedantic, "pedantic", false, "exit on first error")
+	f().BoolVar(&opts.Verify, "verify", false, "check if the chunks have been saved on the store backend")
 }
 
 func init() {
@@ -128,6 +130,7 @@ func store(repository *knoxite.Repository, chunkIndex *knoxite.ChunkIndex, snaps
 		Pedantic:    opts.Pedantic,
 		DataParts:   uint(len(repository.BackendManager().Backends) - int(opts.FailureTolerance)),
 		ParityParts: opts.FailureTolerance,
+		Verify:      opts.Verify,
 	}
 
 	startTime := time.Now()

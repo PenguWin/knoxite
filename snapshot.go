@@ -8,6 +8,9 @@
 package knoxite
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -39,6 +42,7 @@ type StoreOptions struct {
 	Pedantic    bool
 	DataParts   uint
 	ParityParts uint
+	Verify      bool
 }
 
 // NewSnapshot creates a new snapshot.
@@ -196,6 +200,30 @@ func (snapshot *Snapshot) Add(repository Repository, chunkIndex *ChunkIndex, opt
 							return
 						}
 						continue
+					}
+
+					if opts.Verify {
+						for i, data := range *chunk.Data {
+							b, err := repository.backend.LoadChunk(chunk, uint(i))
+							if err != nil {
+								p = newProgressError(fmt.Errorf("Failed to store %s: %v", archive.Path, err))
+								p.Path = archive.Path
+								progress <- p
+								if opts.Pedantic {
+									return
+								}
+								continue
+							}
+
+							if !bytes.Equal(b, data) {
+								p = newProgressError(errors.New("Stored and loaded chunks vary"))
+								progress <- p
+								if opts.Pedantic {
+									return
+								}
+								continue
+							}
+						}
 					}
 
 					// release the memory, we don't need the data anymore
